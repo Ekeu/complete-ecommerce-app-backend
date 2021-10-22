@@ -24,7 +24,9 @@
     "strapi-plugin-i18n": "3.6.8",
     "strapi-plugin-upload": "3.6.8",
     "strapi-plugin-users-permissions": "3.6.8",
-    "strapi-utils": "3.6.8"
+    "strapi-provider-email-sendgrid": "^3.6.8",
+    "strapi-utils": "3.6.8",
+    "stripe": "^8.184.0"
   },
   "author": {
     "name": "A Strapi developer"

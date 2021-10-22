@@ -58,6 +58,22 @@
       "via": "users",
       "plugin": "users-permissions",
       "configurable": false
+    },
+    "paymentMethods": {
+      "type": "json"
+    },
+    "contactInfo": {
+      "type": "json"
+    },
+    "locations": {
+      "type": "json"
+    },
+    "orders": {
+      "via": "user",
+      "collection": "order"
+    },
+    "stripeID": {
+      "type": "string"
     }
   }
 }
