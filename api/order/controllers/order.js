@@ -8,6 +8,11 @@ const { sanitizeEntity } = require("strapi-utils");
 const stripe = require("stripe")(process.env.STRIPE_SK);
 const GUEST_ID = "616f44e05fdd09e104dfc9fa";
 
+const sanitizeUser = (user) =>
+  sanitizeEntity(user, {
+    model: strapi.query("user", "users-permissions").model,
+  });
+
 module.exports = {
   async processOrder(ctx) {
     let serverItemsTotalsPrice = 0;
@@ -24,13 +29,13 @@ module.exports = {
         id: 2,
         title: "Standard",
         turnaround: "4–10 business days",
-        price: 9.99,
+        price: 10,
       },
       {
         id: 3,
         title: "Express",
         turnaround: "2–5 business days",
-        price: 29.99,
+        price: 30,
       },
     ];
 
@@ -41,6 +46,7 @@ module.exports = {
       idempotencyKey,
       storedIntent,
       email,
+      savedCard,
     } = ctx.request.body;
 
     await Promise.all(
@@ -91,12 +97,23 @@ module.exports = {
           intentID: update.id,
         });
       } else {
+        let saved;
+        if (savedCard) {
+          const stripeMethods = await stripe.paymentMethods.list({
+            customer: ctx.state.user.stripeID,
+            type: "card",
+          });
+          saved = stripeMethods.data.find(
+            (method) => method.card.last4 === savedCard
+          );
+        }
         const intent = await stripe.paymentIntents.create(
           {
             amount: total * 100,
             currency: "eur",
             customer: ctx.state.user ? ctx.state.user.stripeID : undefined,
             receipt_email: email,
+            payment_method: saved ? saved.id : undefined,
           },
           {
             idempotencyKey,
@@ -124,7 +141,10 @@ module.exports = {
       tax,
       total,
       items,
-      transaction
+      transaction,
+      paymentMethod,
+      saveCard,
+      selectedPaymentSlot,
     } = ctx.request.body;
 
     if (ctx.state.user) {
@@ -145,6 +165,19 @@ module.exports = {
       })
     );
 
+    if (saveCard && ctx.state.user) {
+      let updatedPaymentMethods = [...ctx.state.user.paymentMethods];
+      updatedPaymentMethods[selectedPaymentSlot] = paymentMethod;
+
+      await strapi.plugins["users-permissions"].services.user.edit(
+        {
+          id: customerID,
+        },
+        {
+          paymentMethods: updatedPaymentMethods,
+        }
+      );
+    }
     let validOrder = await strapi.services.order.create({
       shippingAddress,
       billingAddress,
@@ -157,6 +190,7 @@ module.exports = {
       items,
       transaction,
       user: customerID,
+      paymentMethod,
     });
     validOrder = sanitizeEntity(validOrder, {
       model: strapi.models.order,
@@ -168,5 +202,46 @@ module.exports = {
     }
 
     ctx.send({ validOrder }, 200);
+  },
+
+  async removeCard(ctx) {
+    const { card } = ctx.request.body;
+    const { stripeID } = ctx.state.user;
+
+    const stripeMethods = await stripe.paymentMethods.list({
+      customer: stripeID,
+      type: "card",
+    });
+    const stripeCard = stripeMethods.data.find(
+      (method) => method.card.last4 === card
+    );
+
+    await stripe.paymentMethods.detach(stripeCard.id);
+
+    let updatedPaymentMethods = [...ctx.state.user.paymentMethods];
+
+    const paymentMethodSlot = updatedPaymentMethods.findIndex(
+      (method) => method.last4 === card
+    );
+
+    updatedPaymentMethods[paymentMethodSlot] = {
+      brand: "",
+      last4: "",
+      exp_month: "",
+      exp_year: "",
+    };
+
+    const updatedUser = await strapi.plugins[
+      "users-permissions"
+    ].services.user.edit(
+      {
+        id: ctx.state.user.id,
+      },
+      {
+        paymentMethods: updatedPaymentMethods,
+      }
+    );
+
+    ctx.send({ user: sanitizeUser(updatedUser) }, 200);
   },
 };

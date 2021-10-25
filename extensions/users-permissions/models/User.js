@@ -10,9 +10,9 @@ module.exports = {
 
       data.stripeID = customer.id;
       data.paymentMethods = [
-        { brand: "", lastFour: "" },
-        { brand: "", lastFour: "" },
-        { brand: "", lastFour: "" },
+        { brand: "", last4: "", exp_month: "", exp_year: "" },
+        { brand: "", last4: "", exp_month: "", exp_year: "" },
+        { brand: "", last4: "", exp_month: "", exp_year: "" },
       ];
       data.contactInfo = [
         { name: data.username, email: data.email, phone: "" },

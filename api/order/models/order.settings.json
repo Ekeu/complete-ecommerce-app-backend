@@ -61,6 +61,10 @@
     "transaction": {
       "type": "string",
       "required": true
+    },
+    "paymentMethod": {
+      "type": "json",
+      "required": true
     }
   }
 }
