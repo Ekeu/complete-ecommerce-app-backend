@@ -38,6 +38,13 @@
     },
     "specifications_json": {
       "type": "json"
+    },
+    "reviews": {
+      "via": "product",
+      "collection": "review"
+    },
+    "rating": {
+      "type": "decimal"
     }
   }
 }

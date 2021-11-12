@@ -48,4 +48,29 @@ module.exports = {
 
     ctx.send("Password changed successfully.", 200);
   },
+
+  async me(ctx) {
+    const user = ctx.state.user;
+
+    if (!user) {
+      return ctx.badRequest(null, [
+        { messages: [{ id: "No authorization header was found" }] },
+      ]);
+    }
+
+    const updatedUser = { ...sanitizeUser(user) };
+    const favorites = await strapi.services.favorite.find({ user });
+    const subscriptions = await strapi.services.subscription.find({ user });
+    updatedUser.favorites = favorites.map((favorite) => ({
+      variant: favorite.variant.id,
+      id: favorite.id,
+    }));
+
+    updatedUser.subscriptions = subscriptions.map((subscription) => {
+      delete subscription.user;
+      return subscription;
+    });
+
+    ctx.body = sanitizeUser(updatedUser);
+  },
 };

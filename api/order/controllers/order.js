@@ -153,11 +153,35 @@ module.exports = {
       customerID = GUEST_ID;
     }
 
+    const subsFrequencies = await strapi.services.order.frequency();
+
     await Promise.all(
       items.map(async (customerItem) => {
         const serverItem = await strapi.services.variant.findOne({
           id: customerItem.variant.id,
         });
+
+        if (customerItem.subscription) {
+          const frequency = subsFrequencies.find(
+            (option) => option.label === customerItem.subscription
+          );
+          console.log(frequency);
+          await strapi.services.subscription.create({
+            user: customerID,
+            variant: customerItem.variant.id,
+            name: customerItem.name,
+            frequency: frequency.value,
+            last_delivery: moment().toDate(),
+            next_delivery: frequency.delivery(),
+            quantity: customerItem.quantity,
+            paymentMethod,
+            shippingAddress,
+            billingAddress,
+            shippingInformation,
+            billingInformation,
+          });
+        }
+
         await strapi.services.variant.update(
           { id: customerItem.variant.id },
           { quantity: serverItem.quantity - customerItem.quantity }
@@ -195,6 +219,17 @@ module.exports = {
     validOrder = sanitizeEntity(validOrder, {
       model: strapi.models.order,
     });
+
+    const confirmation = await strapi.services.order.confirmationEmail(
+      validOrder
+    );
+
+    await strapi.plugins["email"].services.email.send({
+      to: validOrder.billingInformation.email,
+      subject: "YOUR ORDER HAS BEEN PLACED!",
+      html: confirmation,
+    });
+
     if (validOrder.user.username === "Guest") {
       validOrder.user = {
         username: "Guest",
@@ -243,5 +278,24 @@ module.exports = {
     );
 
     ctx.send({ user: sanitizeUser(updatedUser) }, 200);
+  },
+
+  async history(ctx) {
+    const orders = await strapi.services.order.find({
+      user: ctx.state.user.id,
+    });
+
+    const sanitizedOrders = orders.map((order) =>
+      sanitizeEntity(order, {
+        model: strapi.models.order,
+      })
+    );
+
+    ctx.send(
+      {
+        orders: sanitizedOrders,
+      },
+      200
+    );
   },
 };
