@@ -44,7 +44,8 @@
       "collection": "review"
     },
     "rating": {
-      "type": "decimal"
+      "type": "decimal",
+      "default": 0
     }
   }
 }
