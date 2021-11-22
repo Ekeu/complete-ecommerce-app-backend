@@ -13,12 +13,18 @@ module.exports = {
       user: ctx.state.user.id,
     });
 
-    subscriptions.map((subscription) => {
-      delete subscription.user;
-      subscription = sanitizeEntity(subscription, {
-        model: strapi.models.subscription,
-      });
-    });
+    await Promise.all(
+      subscriptions.map(async (subscription) => {
+        delete subscription.user;
+        const product = await strapi.services.product.find({
+          id: subscription.variant.product,
+        });
+        subscription.variant.product = { ...product[0] };
+        subscription = sanitizeEntity(subscription, {
+          model: strapi.models.subscription,
+        });
+      })
+    );
 
     ctx.send(subscriptions, 200);
   },

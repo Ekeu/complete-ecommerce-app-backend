@@ -1,5 +1,6 @@
 "use strict";
 
+const moment = require("moment");
 /**
  * Read the documentation (https://strapi.io/documentation/developer-docs/latest/development/backend-customization.html#core-controllers)
  * to customize this controller
@@ -75,8 +76,9 @@ module.exports = {
 
     if (
       validDeliveryMethod === undefined ||
-      (serverItemsTotalsPrice * 1.2 + validDeliveryMethod.price).toFixed(2) !==
-        total
+      ((serverItemsTotalsPrice + validDeliveryMethod.price) * 1.2).toFixed(
+        2
+      ) !== total
     ) {
       ctx.send({ error: "Invalid cart" }, 400);
     } else if (unavailableItems.length > 0) {
@@ -284,13 +286,11 @@ module.exports = {
     const orders = await strapi.services.order.find({
       user: ctx.state.user.id,
     });
-
     const sanitizedOrders = orders.map((order) =>
       sanitizeEntity(order, {
         model: strapi.models.order,
       })
     );
-
     ctx.send(
       {
         orders: sanitizedOrders,
