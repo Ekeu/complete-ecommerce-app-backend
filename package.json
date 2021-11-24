@@ -1,8 +1,8 @@
 {
-  "name": "adidas-backend",
+  "name": "adidas-dev-backend-ecom",
   "private": true,
   "version": "0.1.0",
-  "description": "A Strapi application",
+  "description": "Adidas ecommerce strapi backend for developers",
   "scripts": {
     "develop": "strapi develop",
     "start": "strapi start",
